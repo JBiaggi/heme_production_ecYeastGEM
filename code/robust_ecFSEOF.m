@@ -7,7 +7,6 @@ thresholds   = [1E-2 1];
 % clone GECKO
 git ('clone https://github.com/SysBioChalmers/GECKO')
 cd GECKO
-git checkout feat/add_FSEOF_utilities
 %Get model parameters
 cd geckomat
 parameters = getModelParameters;
@@ -23,12 +22,12 @@ file2   = 'results/rxnsResults_ecFSEOF.txt';
 cd utilities/ecFSEOF
 mkdir('results')
 results = run_ecFSEOF(model,rxnTarget,c_source,alphaLims,Nsteps,file1,file2);
-genes   = results.genes;
+genes   = results.geneTable(:,1);
 disp(['ecFSEOF yielded ' num2str(length(genes)) ' targets'])
 disp(' ')
 %Format results table
-geneShorts = results.geneNames;
-actions    = results.k_genes;
+geneShorts = results.geneTable(:,2);
+actions    = cell2mat(results.geneTable(:,3));
 actions(actions<0.5) = 0;
 actions(actions>1)   = 1;
 MWeigths             = [];
@@ -45,7 +44,7 @@ for i=1:numel(iB)
     end
 end
 %Get results files structures
-candidates = table(genes,candidates,geneShorts,MWeigths,actions,results.k_genes,'VariableNames',{'genes' 'enzymes' 'shortNames' 'MWs' 'actions' 'k_scores'});
+candidates = table(genes,candidates,geneShorts,MWeigths,actions,cell2mat(results.geneTable(:,3)),'VariableNames',{'genes' 'enzymes' 'shortNames' 'MWs' 'actions' 'k_scores'});
 % Keep top results
 %candidates = candidates(((candidates.actions==1)|(candidates.actions==0)),:); 
 toKeep = find((candidates.k_scores>=thresholds(2)|candidates.k_scores<=thresholds(1)));
