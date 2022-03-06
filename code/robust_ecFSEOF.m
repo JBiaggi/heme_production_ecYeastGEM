@@ -50,6 +50,7 @@ candidates = table(genes,candidates,geneShorts,MWeigths,actions,cell2mat(results
 toKeep = find((candidates.k_scores>=thresholds(2)|candidates.k_scores<=thresholds(1)));
 candidates = candidates(toKeep,:);
 cd (current)
+candidates = sortrows(candidates,{'k_scores', 'genes'}, {'descend', 'ascend'});
 writetable(candidates,[resultsFolder '/candidates_ecFSEOF.txt'],'Delimiter','\t','QuoteStrings',false);
 disp(['Remove targets ' num2str(thresholds(1)) ' < K_score < ' num2str(thresholds(2))])
 disp([num2str(height(candidates)) ' gene targets remain'])
@@ -99,6 +100,7 @@ candidates.maxUsage = FVAtable.maxU;
 candidates.pUsage   = candidateUsages;
 %Generate table with FVA results
 t = table(candidates.enzymes,FVAtable.minU,FVAtable.maxU,FVAtable.ranges,candidateUsages,'VariableNames',{'enzNames' 'minUsages' 'maxUsages' 'ranges' 'pUsages'});
+candidates = sortrows(candidates,{'k_scores', 'genes'}, {'descend', 'ascend'});
 writetable(candidates,[resultsFolder '/candidates_enzUsageFVA.txt'],'Delimiter','\t','QuoteStrings',false);
 %Discard enzymes whose usage LB = UB = 0
 tempMat  = table2array(t(:,[2 3]));
@@ -125,6 +127,7 @@ candidates            = candidates(validated,:);
 disp('Discard gene modifications with a negative impact on product yield')
 disp([num2str(height(candidates)) ' gene targets remain'])
 disp(' ')
+candidates = sortrows(candidates,{'k_scores', 'genes'}, {'descend', 'ascend'});
 writetable(candidates,[resultsFolder '/candidates_mech_validated.txt'],'Delimiter','\t','QuoteStrings',false);
 % Assess genes redundancy
 %Get Genes-metabolites network
@@ -188,7 +191,7 @@ candidates = candidates(priority>0,:);
 disp('Discard genes with priority level = 0')
 disp([num2str(height(candidates)) ' gene targets remain'])
 disp(' ')
-candidates = sortrows(candidates,'priority','ascend');
+candidates = sortrows(candidates,{'priority', 'k_scores', 'genes'}, {'ascend', 'descend', 'ascend'});
 writetable(candidates,[resultsFolder '/candidates_priority.txt'],'Delimiter','\t','QuoteStrings',false);
 % get optimal strain according to priority candidates
 disp('Constructing optimal strain')
@@ -201,6 +204,7 @@ actions(filtered.actions>0) = {'OE'};
 filtered.actions = actions;
 disp([num2str(height(filtered)) ' gene targets remain'])
 disp(' ')
+filtered = sortrows(filtered,{'priority', 'k_scores', 'genes'}, {'ascend', 'descend', 'ascend'});
 writetable(filtered,[resultsFolder '/compatible_genes_results.txt'],'Delimiter','\t','QuoteStrings',false);
 origin = 'GECKO/geckomat/utilities/ecFSEOF/results/*';
 copyfile(origin,resultsFolder)
