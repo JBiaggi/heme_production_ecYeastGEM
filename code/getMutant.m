@@ -41,7 +41,6 @@ mutantModel = model;
 genes2mod   = modifications(:,1);
 actions     = modifications(:,2);
 OE          = modifications(:,3);
-pool_index  = (strcmpi(model.rxnNames,'prot_pool_exchange'));
 for i=1:length(genes2mod)
     gene     = genes2mod{i};
     action   = actions{i};
@@ -54,14 +53,10 @@ for i=1:length(genes2mod)
     else
         enzyme = [];
     end
-    %Deletion mutants
     switch action
+        %Deletion mutants
         case 0
             mutantModel = removeGenes(mutantModel,gene,false,false,false);
-            if ~isempty(enzUsage) && ~isempty(gene2modIndex)
-                releasedMass = enzUsage*mutantModel.MWs(gene2modIndex);
-                mutantModel.ub(pool_index) = mutantModel.ub(pool_index)+releasedMass;
-            end
         %Overexpression mutants
         case 1
             if ~isempty(enzyme)
