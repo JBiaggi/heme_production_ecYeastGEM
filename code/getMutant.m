@@ -89,6 +89,9 @@ for i=1:length(genes2mod)
                 enzKcats   = find(mutantModel.S(enzMetIndx,:));
                 enzKcats   = enzKcats(1:end-1);
                 mutantModel.S(enzMetIndx,enzKcats) = mutantModel.S(enzMetIndx,enzKcats)./OEFactor;
+                % Don't allow overall expression to decrease:
+                enzRxn = find(contains(mutantModel.rxnNames,enzyme));
+                mutantModel.lb(enzRxn) = enzUsage/OEFactor;
             end
         %Change endogenous for Heterologous enzymes
         case 3

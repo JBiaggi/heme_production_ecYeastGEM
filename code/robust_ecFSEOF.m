@@ -217,7 +217,6 @@ end
 FoldChanges = [];
 CUR_indx    = indexes(1);
 targetIndx  = indexes(2);
-medianUsage = (candidates.maxUsage-candidates.minUsage)/2.001; 
 %Index to minimize (bi-level optimization)
 minIndex = find(contains(tempModel.rxnNames,'prot_pool'));
 for i=1:height(candidates)
@@ -226,12 +225,7 @@ for i=1:height(candidates)
     action = candidates.actions(i);
     OEf    = candidates.OE(i);
     modifications = {gene action OEf};
-    if action == 0
-        pUsage = candidates.maxUsage(i);
-    else
-        pUsage = medianUsage(i);
-    end
-    mutantModel     = getMutant(tempModel,modifications,pUsage);
+    mutantModel     = getMutant(tempModel,modifications,candidates.pUsage(i));
     [mutSolution,~] = solveECmodel(mutantModel,mutantModel,'pFBA',minIndex);
     if ~isempty(mutSolution)
         yield = mutSolution(targetIndx)/mutSolution(CUR_indx);
