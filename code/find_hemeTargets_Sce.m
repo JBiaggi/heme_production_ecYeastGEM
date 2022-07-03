@@ -1,8 +1,5 @@
 %Clone GECKO and go to the right branch
 git('clone https://github.com/SysBioChalmers/GECKO.git')
-cd GECKO 
-git checkout feat/add_FSEOF_utilities
-cd ..
 clc
 %Load model
 load('../models/ecYeastGEM_batch.mat')

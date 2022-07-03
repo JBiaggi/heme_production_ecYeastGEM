@@ -41,7 +41,6 @@ mutantModel = model;
 genes2mod   = modifications(:,1);
 actions     = modifications(:,2);
 OE          = modifications(:,3);
-pool_index  = (strcmpi(model.rxnNames,'prot_pool_exchange'));
 for i=1:length(genes2mod)
     gene     = genes2mod{i};
     action   = actions{i};
@@ -54,14 +53,10 @@ for i=1:length(genes2mod)
     else
         enzyme = [];
     end
-    %Deletion mutants
     switch action
+        %Deletion mutants
         case 0
             mutantModel = removeGenes(mutantModel,gene,false,false,false);
-            if ~isempty(enzUsage) && ~isempty(gene2modIndex)
-                releasedMass = enzUsage*mutantModel.MWs(gene2modIndex);
-                mutantModel.ub(pool_index) = mutantModel.ub(pool_index)+releasedMass;
-            end
         %Overexpression mutants
         case 1
             if ~isempty(enzyme)
@@ -94,6 +89,9 @@ for i=1:length(genes2mod)
                 enzKcats   = find(mutantModel.S(enzMetIndx,:));
                 enzKcats   = enzKcats(1:end-1);
                 mutantModel.S(enzMetIndx,enzKcats) = mutantModel.S(enzMetIndx,enzKcats)./OEFactor;
+                % Don't allow overall expression to decrease:
+                enzRxn = find(contains(mutantModel.rxnNames,enzyme));
+                mutantModel.lb(enzRxn) = enzUsage/OEFactor;
             end
         %Change endogenous for Heterologous enzymes
         case 3

@@ -7,7 +7,6 @@ thresholds   = [1E-2 1];
 % clone GECKO
 git ('clone https://github.com/SysBioChalmers/GECKO')
 cd GECKO
-git checkout feat/add_FSEOF_utilities
 %Get model parameters
 cd geckomat
 parameters = getModelParameters;
@@ -23,12 +22,12 @@ file2   = 'results/rxnsResults_ecFSEOF.txt';
 cd utilities/ecFSEOF
 mkdir('results')
 results = run_ecFSEOF(model,rxnTarget,c_source,alphaLims,Nsteps,file1,file2);
-genes   = results.genes;
+genes   = results.geneTable(:,1);
 disp(['ecFSEOF yielded ' num2str(length(genes)) ' targets'])
 disp(' ')
 %Format results table
-geneShorts = results.geneNames;
-actions    = results.k_genes;
+geneShorts = results.geneTable(:,2);
+actions    = cell2mat(results.geneTable(:,3));
 actions(actions<0.5) = 0;
 actions(actions>1)   = 1;
 MWeigths             = [];
@@ -45,12 +44,13 @@ for i=1:numel(iB)
     end
 end
 %Get results files structures
-candidates = table(genes,candidates,geneShorts,MWeigths,actions,results.k_genes,'VariableNames',{'genes' 'enzymes' 'shortNames' 'MWs' 'actions' 'k_scores'});
+candidates = table(genes,candidates,geneShorts,MWeigths,actions,cell2mat(results.geneTable(:,3)),'VariableNames',{'genes' 'enzymes' 'shortNames' 'MWs' 'actions' 'k_scores'});
 % Keep top results
 %candidates = candidates(((candidates.actions==1)|(candidates.actions==0)),:); 
 toKeep = find((candidates.k_scores>=thresholds(2)|candidates.k_scores<=thresholds(1)));
 candidates = candidates(toKeep,:);
 cd (current)
+candidates = sortrows(candidates,{'k_scores', 'genes'}, {'descend', 'ascend'});
 writetable(candidates,[resultsFolder '/candidates_ecFSEOF.txt'],'Delimiter','\t','QuoteStrings',false);
 disp(['Remove targets ' num2str(thresholds(1)) ' < K_score < ' num2str(thresholds(2))])
 disp([num2str(height(candidates)) ' gene targets remain'])
@@ -100,6 +100,7 @@ candidates.maxUsage = FVAtable.maxU;
 candidates.pUsage   = candidateUsages;
 %Generate table with FVA results
 t = table(candidates.enzymes,FVAtable.minU,FVAtable.maxU,FVAtable.ranges,candidateUsages,'VariableNames',{'enzNames' 'minUsages' 'maxUsages' 'ranges' 'pUsages'});
+candidates = sortrows(candidates,{'k_scores', 'genes'}, {'descend', 'ascend'});
 writetable(candidates,[resultsFolder '/candidates_enzUsageFVA.txt'],'Delimiter','\t','QuoteStrings',false);
 %Discard enzymes whose usage LB = UB = 0
 tempMat  = table2array(t(:,[2 3]));
@@ -126,6 +127,7 @@ candidates            = candidates(validated,:);
 disp('Discard gene modifications with a negative impact on product yield')
 disp([num2str(height(candidates)) ' gene targets remain'])
 disp(' ')
+candidates = sortrows(candidates,{'k_scores', 'genes'}, {'descend', 'ascend'});
 writetable(candidates,[resultsFolder '/candidates_mech_validated.txt'],'Delimiter','\t','QuoteStrings',false);
 % Assess genes redundancy
 %Get Genes-metabolites network
@@ -189,7 +191,7 @@ candidates = candidates(priority>0,:);
 disp('Discard genes with priority level = 0')
 disp([num2str(height(candidates)) ' gene targets remain'])
 disp(' ')
-candidates = sortrows(candidates,'priority','ascend');
+candidates = sortrows(candidates,{'priority', 'k_scores', 'genes'}, {'ascend', 'descend', 'ascend'});
 writetable(candidates,[resultsFolder '/candidates_priority.txt'],'Delimiter','\t','QuoteStrings',false);
 % get optimal strain according to priority candidates
 disp('Constructing optimal strain')
@@ -202,6 +204,7 @@ actions(filtered.actions>0) = {'OE'};
 filtered.actions = actions;
 disp([num2str(height(filtered)) ' gene targets remain'])
 disp(' ')
+filtered = sortrows(filtered,{'priority', 'k_scores', 'genes'}, {'ascend', 'descend', 'ascend'});
 writetable(filtered,[resultsFolder '/compatible_genes_results.txt'],'Delimiter','\t','QuoteStrings',false);
 origin = 'GECKO/geckomat/utilities/ecFSEOF/results/*';
 copyfile(origin,resultsFolder)
@@ -214,7 +217,6 @@ end
 FoldChanges = [];
 CUR_indx    = indexes(1);
 targetIndx  = indexes(2);
-medianUsage = (candidates.maxUsage-candidates.minUsage)/2.001; 
 %Index to minimize (bi-level optimization)
 minIndex = find(contains(tempModel.rxnNames,'prot_pool'));
 for i=1:height(candidates)
@@ -223,12 +225,7 @@ for i=1:height(candidates)
     action = candidates.actions(i);
     OEf    = candidates.OE(i);
     modifications = {gene action OEf};
-    if action == 0
-        pUsage = candidates.maxUsage(i);
-    else
-        pUsage = medianUsage(i);
-    end
-    mutantModel     = getMutant(tempModel,modifications,pUsage);
+    mutantModel     = getMutant(tempModel,modifications,candidates.pUsage(i));
     [mutSolution,~] = solveECmodel(mutantModel,mutantModel,'pFBA',minIndex);
     if ~isempty(mutSolution)
         yield = mutSolution(targetIndx)/mutSolution(CUR_indx);
