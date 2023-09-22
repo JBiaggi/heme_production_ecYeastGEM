@@ -21,15 +21,23 @@ posP = strcmp(model.rxnNames,rxn);
 %Max growth:
 sol = optModel(model,posX,+1);
 
-%Fix growth suboptimal and then max product:
+%Fix growth suboptimal and and minimize fluxes
 model.lb(posX) = sol.x(posX)*0.999*alpha;
-sol            = optModel(model,posP,+1);
-
-%Fix also product and minimize fluxes:
-model.lb(posP) = sol.x(posP)*0.999;
 sol            = optModel(model,1:length(model.rxns),-1);
+
+%Max product:
+model.lb(1:length(model.rxns)) = sol.x(1:length(model.rxns))*0.999;
+sol            = optModel(model,posP,+1);
 flux           = sol.x;
 
+% %Fix growth suboptimal and then max product:
+% model.lb(posX) = sol.x(posX)*0.999*alpha;
+% sol            = optModel(model,posP,+1);
+% 
+% %Fix also product and minimize fluxes:
+% model.lb(posP) = sol.x(posP)*0.999;
+% sol            = optModel(model,1:length(model.rxns),-1);
+% flux           = sol.x;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
